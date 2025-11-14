@@ -2,10 +2,11 @@
   <footer class="py-6 px-7 flex justify-center flex-wrap items-baseline">
     <template v-for="bind in bands">
       <p class="h-7">
-        <a v-if="bind.link" :href="bind.link" target="_blank">
+        <!-- <a v-if="bind.link" :href="bind.link" target="_blank">
           <img :alt="bind.imageAlt" :src="bind.imageSrc" class="mr-2"/>
         </a>
-        <img v-else :alt="bind.imageAlt" :src="bind.imageSrc" class="mr-2"/>
+        <img v-else :alt="bind.imageAlt" :src="bind.imageSrc" class="mr-2"/> -->
+        路漫漫其修远兮，吾将上下而求索。
       </p>
     </template>
 

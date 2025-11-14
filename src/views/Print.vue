@@ -67,7 +67,6 @@ onMounted(() => {
   const minute = now.getMinutes();
   const second = now.getSeconds();
   const timeStr = `${year}${month}${day}${hour}${minute}${second}`;
-  console.log(timeStr);
   document.title = route.query.fileName + timeStr
 
   window.onbeforeprint = () => {
