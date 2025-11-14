@@ -53,7 +53,6 @@ const sheets = computed(() => {
       index += numberOfCols;
     }
     columnsOfPaper = columnsOfPaper.reverse()
-    console.log(columnsOfPaper);
     return { paperTitle, paperSubTitle, columnsOfPaper, colWidth, rowHeight }
   })
 })
@@ -72,12 +71,10 @@ onMounted(() => {
   document.title = route.query.fileName + timeStr
 
   window.onbeforeprint = () => {
-    console.log('before')
     isPrinting.value = true
   }
 
   window.onafterprint = () => {
-    console.log('after')
     nextTick(() => {
       isPrinting.value = false
     })
