@@ -17,7 +17,7 @@
 import {ref} from 'vue';
 
 const bands = ref([
-  // {imageAlt: "Vue-3.2.41", imageSrc: "https://img.shields.io/badge/Vue-3.2.41-blue"},
+  {imageAlt: "Vue-3.2.41", imageSrc: "https://img.shields.io/badge/Vue-3.2.41-blue"},
   // {imageAlt: "license-Apache--2.0", imageSrc: "https://img.shields.io/badge/license-Apache--2.0-green"},
   // {
   //   imageAlt: "",
