@@ -40,6 +40,7 @@ export default class {
           numberOfPagerColumns: 3, // 试卷列数
           paperTitle: '小学生口算题', // 试卷标题
           paperSubTitle: '姓名：__________ 日期：____月____日 时间：________ 对题：____道', // 试卷副标题
+          lineHeight: 10, // 每两行算式之间的高度
           // 试题格式
           // min 算数项最小值 max 算数项最大值 operators 与上一步算数项使用的运算符号
           // 第一个算数项由于没有上一步故设置为null

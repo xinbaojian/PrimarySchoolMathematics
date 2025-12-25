@@ -40,11 +40,11 @@ const appStore = useAppStore()
 
 const sheets = computed(() => {
   return appStore.printPreviewPapers.map(p => {
-    const { paperTitle, paperSubTitle, numberOfPagerColumns, solution, formulas } = p
+    const { paperTitle, paperSubTitle, numberOfPagerColumns, solution, formulas, lineHeight } = p
 
     const numberOfCols = formulas.length / numberOfPagerColumns
     const colWidth = 100 / numberOfPagerColumns
-    const rowHeight = solution == '0' ? '16px' : '160px'
+    const rowHeight = solution == '0' ? `${lineHeight}mm` : '160px'
 
     let columnsOfPaper = [];
     let index = 0

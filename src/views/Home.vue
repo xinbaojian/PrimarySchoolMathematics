@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, unref, toRaw, getCurrentInstance, computed } from 'vue';
+import { ref, onMounted, unref, toRaw, getCurrentInstance, computed, watch } from 'vue';
 import { useRouter } from "vue-router";
 import { CustomFormulas, AutoGenerateFormulas, ConfigurationList } from "@/components/home";
 import ConfigStorage from "@/utils/configStorage";
@@ -67,6 +67,7 @@ const formData = ref({
   numberOfPagerColumns: 3, // 试卷列数
   paperTitle: '小学生口算题', // 试卷标题
   paperSubTitle: '姓名：__________ 日期：____月____日 时间：________ 对题：____道', // 试卷副标题
+  lineHeight: 10, // 每两行算式之间的高度
   // 试题格式
   // min 算数项最小值 max 算数项最大值 operators 与上一步算数项使用的运算符号
   // 第一个算数项由于没有上一步故设置为null
@@ -84,6 +85,12 @@ const formData = ref({
 })
 
 const configurations = ref([])
+
+watch(() => formData.value.lineHeight, (newVal) => {
+  if (typeof newVal !== 'number') {
+    formData.value.lineHeight = Number(newVal) || 20
+  }
+})
 
 onMounted(async () => {
   document.title = '小学数学口算题 | Primary School Mathematics'
@@ -103,6 +110,7 @@ onMounted(async () => {
   formData.value.numberOfPagerColumns = config.numberOfPagerColumns
   formData.value.paperTitle = config.paperTitle
   formData.value.paperSubTitle = config.paperSubTitle
+  formData.value.lineHeight = parseInt(config.lineHeight) || 20
   formData.value.formulaList = config.formulaList
   formData.value.resultMinValue = config.resultMinValue
   formData.value.resultMaxValue = config.resultMaxValue
@@ -140,6 +148,7 @@ const selectedConfiguration = (configuration) => {
   formData.value.numberOfPagerColumns = config.numberOfPagerColumns
   formData.value.paperTitle = config.paperTitle
   formData.value.paperSubTitle = config.paperSubTitle
+  formData.value.lineHeight = parseInt(config.lineHeight) || 20
   formData.value.formulaList = config.formulaList
   formData.value.resultMinValue = config.resultMinValue
   formData.value.resultMaxValue = config.resultMaxValue

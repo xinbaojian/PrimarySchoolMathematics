@@ -82,6 +82,18 @@
           <template #prepend>卷子副标题</template>
         </el-input>
       </el-form-item>
+
+      <el-form-item label="每两行算式之间的高度" prop="lineHeight">
+        <el-row :gutter="8">
+          <el-col :span="16">
+            <el-input-number v-model.number="formData.lineHeight" :min="5" :max="50" :step="1" controls-position="right">
+            </el-input-number>
+          </el-col>
+          <el-col :span="8">
+            <div class="text-help">单位：毫米</div>
+          </el-col>
+        </el-row>
+      </el-form-item>
     </ElForm>
   </el-drawer>
 </template>
@@ -139,6 +151,11 @@ const formRules = ref({
   ],
   paperSubTitle: [
     { required: true, message: '请填写卷子副标题' }
+  ],
+  lineHeight: [
+    { required: true, message: '请填写行高' },
+    { type: 'number', message: '请填写数字', transform: value => Number(value) },
+    { min: 5, max: 50, message: '行高范围在5-50毫米之间', type: 'number', transform: value => Number(value) }
   ]
 })
 

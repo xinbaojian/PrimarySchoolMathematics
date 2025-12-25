@@ -57,6 +57,7 @@ export function createFormulasGenerator(options, paperList) {
       paperSubTitle: options.paperSubTitle,
       numberOfPagerColumns: parseInt(options.numberOfPagerColumns),
       solution: options.solution,
+      lineHeight: parseInt(options.lineHeight),
       formulas: f
     })
   }
