@@ -40,7 +40,7 @@ pnpm build:suiyan     # base=/demo/psm/，用于自有部署
 3. **`stores/app.js`**（`useAppStore`）是交接点：`navigateToPrint(router, fileName, papers)` 把 `printPreviewPapers` 存进 store 再跳转 `/print`。这就是生成必须完成后才能跳转的原因。
 4. **`views/Print.vue`** 消费 `appStore.printPreviewPapers`，用 `utils/paperLayout.js` 完成分页排版。
 
-`apis/paper.js` + `utils/request.js`（axios）是请求服务端渲染 `.docx`/zip 的遗留路径；`generatePaper` 虽在 `Home.vue` 中被 import 但**并未调用**——生成已完全前端化。`components/home/PaperDownloadDialog.vue` 与 `utils/download.js` 同理，目前均为未使用代码。
+整个应用没有任何后端请求。历史上的服务端渲染 `.docx`/zip 遗留链路（`apis/`、`utils/request.js`、`utils/download.js`、`PaperDownloadDialog.vue` 及 axios 依赖）已全部删除，勿再引入。
 
 ### 配置持久化
 

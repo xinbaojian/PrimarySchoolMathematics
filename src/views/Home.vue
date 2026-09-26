@@ -44,9 +44,7 @@ import { ref, onMounted, unref, toRaw, getCurrentInstance, computed, watch } fro
 import { useRouter } from "vue-router";
 import { CustomFormulas, AutoGenerateFormulas, ConfigurationList } from "@/components/home";
 import ConfigStorage from "@/utils/configStorage";
-import { fileNameGeneratedRuleEnum, httpContentTypeExtensionsMappingEnum } from '@/utils/enum';
-import { download } from "@/utils/download";
-import { generatePaper } from '@/apis/paper';
+import { fileNameGeneratedRuleEnum } from '@/utils/enum';
 import { useAppStore } from '@/stores/app';
 import { createFormulasGenerator } from '@/utils/paperGenerator';
 
