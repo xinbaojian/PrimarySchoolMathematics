@@ -1,0 +1,31 @@
+/**
+ * 打印纸张定义（全局）
+ *
+ * 这里必须显式声明 A4 且 margin 为 0，原因：
+ * 1. 浏览器打印默认会加约 10mm 页边距，A4 的可用区域会从 210×297mm
+ *    缩到约 190×277mm；而打印页里的 .sheet 是按 210mm 宽设计的，
+ *    放不下就会触发分页错乱（空白页）。
+ * 2. 纸张边距由 .sheet 自身的 padding-10mm/15mm/... 提供，
+ *    不需要浏览器再留边。
+ *
+ * 注意：不要在打印态给 body 设固定 height，否则多张纸会被裁掉。
+ */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* 打印时不允许出现滚动条/动画等屏幕态残留 */
+  body {
+    overflow: visible;
+  }
+}

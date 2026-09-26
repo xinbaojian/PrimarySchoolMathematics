@@ -2,16 +2,16 @@
   <div>
     <ElFormItem label="几步运算?">
       <el-radio-group v-model="formData.step" @change="changeStep">
-        <el-radio-button v-for="o in stepOptions" :label="o.key" :disabled="o.disabled">{{ o.label }}</el-radio-button>
+        <el-radio-button v-for="o in stepOptions" :value="o.key" :disabled="o.disabled">{{ o.label }}</el-radio-button>
       </el-radio-group>
       <ElButton type="primary" style="margin-left: 6px;" @click="openOptionsDrawer">其他设置</ElButton>
     </ElFormItem>
 
-    <template v-for="item, index in formData.formulaList">
+    <template v-for="(item, index) in formData.formulaList" :key="index">
       <ElFormItem v-if="item.operators" :label="`第${index}步运算符号选择`" :prop="`formulaList.${index}.operators`"
         :rules="requiredRule">
         <el-checkbox-group v-model="item.operators">
-          <el-checkbox v-for="o in operatorOptions" :label="o.key">{{ o.label }}</el-checkbox>
+          <el-checkbox v-for="o in operatorOptions" :value="o.key">{{ o.label }}</el-checkbox>
         </el-checkbox-group>
       </ElFormItem>
 

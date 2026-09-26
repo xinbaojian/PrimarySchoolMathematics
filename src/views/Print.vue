@@ -1,14 +1,15 @@
 <template>
   <div :class="{ 'preview': !isPrinting }">
     <div class="A4">
-      <div v-for="sheet in sheets" class="sheet padding-10mm" :class="{ 'sheet-shadow': !isPrinting }">
+      <div v-for="(sheet, sheetIndex) in sheets" :key="sheetIndex" class="sheet padding-10mm"
+        :class="{ 'sheet-shadow': !isPrinting }">
         <div class="mt-12 mb-12">
           <h1>{{ sheet.paperTitle }}</h1>
           <h3>{{ sheet.paperSubTitle }}</h3>
         </div>
         <div class="row">
-          <div v-for="col in sheet.columnsOfPaper" :style="`width: ${sheet.colWidth}%;`">
-            <p :style="`margin-bottom: ${sheet.rowHeight}`" v-for="f in col">{{ f }}</p>
+          <div v-for="(col, colIndex) in sheet.columnsOfPaper" :key="colIndex" :style="`width: ${sheet.colWidth}%;`">
+            <p :style="`margin-bottom: ${sheet.rowHeight}`" v-for="(f, rowIndex) in col" :key="rowIndex">{{ f }}</p>
           </div>
         </div>
       </div>
@@ -21,43 +22,68 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onActivated, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAppStore } from "@/stores/app";
+import { buildPrintSheets, FIXED_BLOCK_MM } from "@/utils/paperLayout";
 
 
 /**
- * 要处理的场景
- * 场景1: 一份试卷一页能显示完
- * 场景2: 一份试卷一页能不能显示完(A4纸一列最多26道题)
- * 场景3: 多份试卷一页能显示完
- * 场景4: 多份试卷一页能不能显示完
+ * 打印版面规则（由 src/utils/paperLayout.js 统一计算）
+ *
+ * 一张纸 = 一页 A4，是硬约束。每列能放几行取决于行高，
+ * 题量超出单张容量时自动拆成多张纸，而不是交给浏览器分页——
+ * 因为列容器是 flex，Chrome 分页时不可拆分，放不下会整块跳到下一页，
+ * 当前页只剩标题，看起来就是「空白页」。
 */
 const isPrinting = ref(false)
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 
-const sheets = computed(() => {
-  return appStore.printPreviewPapers.map(p => {
-    const { paperTitle, paperSubTitle, numberOfPagerColumns, solution, formulas, lineHeight } = p
+/**
+ * 纸张上除算式行以外的固定高度（上下 padding + 标题块 + 上下外边距）。
+ * 标题一旦换行这个值就会变大，写死会把纸顶出页边界，所以渲染后实测一次。
+ */
+const fixedBlockMM = ref(FIXED_BLOCK_MM)
 
-    const numberOfCols = formulas.length / numberOfPagerColumns
-    const colWidth = 100 / numberOfPagerColumns
-    const rowHeight = solution == '0' ? `${lineHeight}mm` : '160px'
+const measureFixedBlock = () => {
+  const sheetEl = document.querySelector('.A4 .sheet')
+  const rowEl = sheetEl && sheetEl.querySelector('.row')
+  if (!rowEl) return
+  const px2mm = (px) => (px / 96) * 25.4
+  // FIXED_BLOCK_MM 的语义包含上下 padding，实测值必须补上 padding-bottom：
+  // 只取 .row 相对 .sheet 的偏移会少算 10mm，预算反而比兜底值更宽松，
+  // 与常量「取整刻意偏大」的保守方向相反
+  const paddingBottomMM = px2mm(parseFloat(getComputedStyle(sheetEl).paddingBottom) || 0)
+  const height = px2mm(rowEl.getBoundingClientRect().top - sheetEl.getBoundingClientRect().top) + paddingBottomMM
+  if (height > 0) fixedBlockMM.value = height
+}
 
-    let columnsOfPaper = [];
-    let index = 0
-    while (index < formulas.length) {
-      columnsOfPaper.push(formulas.slice(index, numberOfCols + index));
-      index += numberOfCols;
-    }
-    columnsOfPaper = columnsOfPaper.reverse()
-    return { paperTitle, paperSubTitle, columnsOfPaper, colWidth, rowHeight }
-  })
-})
+const sheets = computed(() => buildPrintSheets(appStore.printPreviewPapers, {
+  fixedBlockMM: fixedBlockMM.value
+}))
 
 onMounted(() => {
+  window.onbeforeprint = () => {
+    isPrinting.value = true
+  }
+
+  window.onafterprint = () => {
+    nextTick(() => {
+      isPrinting.value = false
+    })
+  }
+})
+
+/**
+ * 标题设置与固定块实测必须放在 onActivated：
+ * App.vue 的 <keep-alive> 会缓存本页，返回首页重新生成后再进入时
+ * onMounted 不会再触发。若沿用上一次的实测值，标题从短改长后
+ * 每列行数会按偏小的固定块计算，末行被打印态的 overflow:hidden
+ * 裁掉（静默丢题）。onActivated 在首次挂载时同样会触发。
+ */
+onActivated(() => {
   // 修改网页标题以作为打印时文件的文件名
   const now = new Date();
   const year = now.getFullYear();
@@ -69,15 +95,9 @@ onMounted(() => {
   const timeStr = `${year}${month}${day}${hour}${minute}${second}`;
   document.title = route.query.fileName + timeStr
 
-  window.onbeforeprint = () => {
-    isPrinting.value = true
-  }
-
-  window.onafterprint = () => {
-    nextTick(() => {
-      isPrinting.value = false
-    })
-  }
+  // 先回到保守兜底值，等本页重新渲染后再按当前标题实测
+  fixedBlockMM.value = FIXED_BLOCK_MM
+  nextTick(measureFixedBlock)
 })
 
 const goBack = () => {
@@ -101,6 +121,12 @@ const print = () => {
   // height: 100vh;
 }
 
+/* 窗口过窄时不要把 210mm 宽的纸压窄：一被压窄标题就会换行，
+   既让预览失真，也会影响打印版面的实测高度 */
+.preview .A4 {
+  flex: none;
+}
+
 .A4 {
   text-align: center;
 }
@@ -110,7 +136,6 @@ const print = () => {
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
-  page-break-after: always;
 }
 
 .sheet-shadow {
@@ -120,14 +145,8 @@ const print = () => {
 .A4 {
   .sheet {
     width: 210mm;
-    // height: 296mm;
+    // height 由打印态控制：一张纸严格等于一页 A4
     background: white;
-
-    @apply mt-2;
-
-    &:first-of-type {
-      @apply mt-0;
-    }
 
     &.padding-10mm {
       padding: 10mm
@@ -147,17 +166,40 @@ const print = () => {
   }
 }
 
+/* 屏幕上相邻两张纸之间的间隔。
+   只在 screen 下生效——打印时如果还留着这个 margin，
+   会把整张纸往下顶 8px，正好卡在页边界上就会多出空白页。 */
+@media screen {
+  .A4 .sheet {
+    @apply mt-2;
+
+    &:first-of-type {
+      @apply mt-0;
+    }
+  }
+}
+
+/* 打印：一张纸 = 一页 */
+@media print {
+  .A4 {
+    .sheet {
+      height: 297mm;
+      margin-top: 0;
+      break-after: page;
+      page-break-after: always;
+    }
+
+    /* 最后一张不补分页符，否则末尾会多出一张空白页 */
+    .sheet:last-of-type {
+      break-after: auto;
+      page-break-after: auto;
+    }
+  }
+}
+
 .row {
   display: flex;
   width: 100%;
-}
-
-.col33 {
-  width: 33%;
-}
-
-.col34 {
-  width: 34%;
 }
 
 h1 {

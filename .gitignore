@@ -58,3 +58,5 @@ lerna-debug.log*
 *.sln
 *.sw?
 docs/
+.workbuddy/
+.playwright-cli/

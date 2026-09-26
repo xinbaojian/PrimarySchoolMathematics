@@ -3,7 +3,7 @@
     <p class="p-under">可以手动添加题目生成进试卷,比如之前的错题和需要加强的题目。乘法除法填写时可以用
       <ElTag size="small">*</ElTag> 和 <ElTag size="small">/</ElTag> 代替,程序会自动替换。不需要填写等号。
     </p>
-    <ElFormItem v-for="item, index in formData.customFormulaList" :prop="`customFormulaList.${index}.formula`"
+    <ElFormItem v-for="(item, index) in formData.customFormulaList" :key="index" :prop="`customFormulaList.${index}.formula`"
       :rules="requiredRule">
       <div class="flex items-center">
         <ElInput ref="refCustomFormulaInputs" v-model="item.formula" placeholder="例: 20*10"

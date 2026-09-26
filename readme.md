@@ -51,13 +51,13 @@
 安装依赖
 
 ```sh
-  yarn # 推荐Yarn安装
+  pnpm install # 推荐使用 pnpm 安装
 ```
 
 启动
 
 ```sh
-  yarn dev
+  pnpm dev
 ```
 
 启动成功后访问 `http://127.0.0.1:1101` 即可。
@@ -65,9 +65,9 @@
 打包
 
 ```sh
-  yarn build
+  pnpm build
 
-  yarn build:github # 为了部署github pages
+  pnpm build:github # 为了部署github pages
 ```
 
 > 打包完成后,为了github page部署,前端静态资源会复制一份到`docs`文件夹

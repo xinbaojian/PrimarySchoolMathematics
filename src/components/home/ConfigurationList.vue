@@ -4,7 +4,7 @@
       <p class="text-base mb-5">已保存配置列表</p>
       <ElButton type="danger" size="small" @click="reset">重置配置</ElButton>
     </div>
-    <ElCard v-for="c in configurations" :class="{ active: c.id == activeConfigurationId }" class="mb-3" :shadow="'hover'"
+    <ElCard v-for="c in configurations" :key="c.id" :class="{ active: c.id == activeConfigurationId }" class="mb-3" :shadow="'hover'"
       @click="select(c.id)">
       <div class="flex justify-between items-center cursor-pointer">
         <!-- 是否选中 -->

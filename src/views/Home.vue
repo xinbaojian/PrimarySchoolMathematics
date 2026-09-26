@@ -5,8 +5,8 @@
         <ElForm ref="refForm" :model="formData" label-position="top">
           <ElFormItem label="生成模式">
             <el-radio-group v-model="formData.generateMode">
-              <el-radio-button label="1">自动生成</el-radio-button>
-              <el-radio-button label="2">手动添加</el-radio-button>
+              <el-radio-button value="1">自动生成</el-radio-button>
+              <el-radio-button value="2">手动添加</el-radio-button>
             </el-radio-group>
           </ElFormItem>
 
@@ -21,7 +21,7 @@
 
           <template v-if="paperDescriptionList && paperDescriptionList.length">
             <ElFormItem label="当前口算题包含的内容">
-              <div v-for="p in paperDescriptionList">
+              <div v-for="(p, index) in paperDescriptionList" :key="index">
                 <ElTag style="margin-right: 8px;">{{ p }}</ElTag>
               </div>
             </ElFormItem>
@@ -88,7 +88,7 @@ const configurations = ref([])
 
 watch(() => formData.value.lineHeight, (newVal) => {
   if (typeof newVal !== 'number') {
-    formData.value.lineHeight = Number(newVal) || 20
+    formData.value.lineHeight = Number(newVal) || 10
   }
 })
 
@@ -110,7 +110,7 @@ onMounted(async () => {
   formData.value.numberOfPagerColumns = config.numberOfPagerColumns
   formData.value.paperTitle = config.paperTitle
   formData.value.paperSubTitle = config.paperSubTitle
-  formData.value.lineHeight = parseInt(config.lineHeight) || 20
+  formData.value.lineHeight = parseInt(config.lineHeight) || 10
   formData.value.formulaList = config.formulaList
   formData.value.resultMinValue = config.resultMinValue
   formData.value.resultMaxValue = config.resultMaxValue
@@ -148,7 +148,7 @@ const selectedConfiguration = (configuration) => {
   formData.value.numberOfPagerColumns = config.numberOfPagerColumns
   formData.value.paperTitle = config.paperTitle
   formData.value.paperSubTitle = config.paperSubTitle
-  formData.value.lineHeight = parseInt(config.lineHeight) || 20
+  formData.value.lineHeight = parseInt(config.lineHeight) || 10
   formData.value.formulaList = config.formulaList
   formData.value.resultMinValue = config.resultMinValue
   formData.value.resultMaxValue = config.resultMaxValue

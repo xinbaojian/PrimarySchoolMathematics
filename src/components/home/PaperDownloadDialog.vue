@@ -10,7 +10,7 @@
           <a :href="zipUrl" target="_blank" download="下载">全部下载</a>
         </div>
       </el-col>
-      <el-col :span="12" v-for="file in files">
+      <el-col :span="12" v-for="file in files" :key="file">
         <div class="link">
           <el-icon>
             <Document />
