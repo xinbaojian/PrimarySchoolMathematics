@@ -1,52 +1,60 @@
 <template>
   <div class="page-container">
-    <ElRow :gutter="20">
-      <ElCol :xs="24" :sm="16" :md="16" :lg="12" :xl="8">
-        <ElForm ref="refForm" :model="formData" label-position="top">
-          <ElFormItem label="生成模式">
+    <QuickPresets v-if="formData.generateMode == '1'" :presets="GRADE_PRESETS" :active-id="activePresetId"
+      @select="applyPreset" />
+
+    <div class="home-grid">
+      <!-- 左列：参数表单 -->
+      <ElForm ref="refForm" :model="formData" label-position="top" class="home-form">
+        <div class="psm-card">
+          <div class="step-head">
+            <span class="step-no">1</span>
+            <span class="step-title">生成方式</span>
+          </div>
+          <ElFormItem>
             <el-radio-group v-model="formData.generateMode">
               <el-radio-button value="1">自动生成</el-radio-button>
               <el-radio-button value="2">手动添加</el-radio-button>
             </el-radio-group>
           </ElFormItem>
+        </div>
+
+        <div class="psm-card">
+          <div class="step-head">
+            <span class="step-no">2</span>
+            <span class="step-title">{{ formData.generateMode == '1' ? '题型与范围' : '手动录入题目' }}</span>
+          </div>
 
           <template v-if="formData.generateMode == '1'">
-            <AutoGenerateFormulas v-model:formulas-form-data="formData" v-model:papers="paperList" :ref-form="refForm"
-              :configurations="configurations" @add-configuration="addConfiguration" />
+            <AutoGenerateFormulas v-model:formulas-form-data="formData" v-model:papers="paperList"
+              :ref-form="refForm" />
           </template>
 
           <template v-if="formData.generateMode == '2'">
             <CustomFormulas v-model:formulas-form-data="formData" v-model:papers="paperList" :ref-form="refForm" />
           </template>
+        </div>
+      </ElForm>
 
-          <template v-if="paperDescriptionList && paperDescriptionList.length">
-            <ElFormItem label="当前口算题包含的内容">
-              <div v-for="(p, index) in paperDescriptionList" :key="index">
-                <ElTag style="margin-right: 8px;">{{ p }}</ElTag>
-              </div>
-            </ElFormItem>
-          </template>
-        </ElForm>
-
-        <el-button :disabled="!paperList.length" type="primary" size="large" :loading="buttonLoading"
-          @click="generate">点此生成口算题卷子</el-button>
-      </ElCol>
-      <ElCol :xs="24" :sm="8" :md="8" :lg="8" :xl="8">
-        <ConfigurationList v-model:active-index="activeConfigurationId" :configurations="configurations"
-          @removed="refreshConfiguration" @selected="selectedConfiguration" @reset="refreshConfiguration" />
-      </ElCol>
-    </ElRow>
+      <!-- 右列：实时摘要 + 生成 + 我的方案 -->
+      <SummaryPanel v-model:active-id="activeConfigurationId" :form-data="formData" :papers="paperList"
+        :configurations="configurations" :loading="buttonLoading" @generate="generate" @save-config="saveConfig"
+        @removed="refreshConfiguration" @selected="selectedConfiguration" @reset="refreshConfiguration" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, unref, toRaw, getCurrentInstance, computed, watch } from 'vue';
 import { useRouter } from "vue-router";
-import { CustomFormulas, AutoGenerateFormulas, ConfigurationList } from "@/components/home";
+import { v4 as uuidv4 } from "uuid";
+import { CustomFormulas, AutoGenerateFormulas, QuickPresets, SummaryPanel } from "@/components/home";
 import ConfigStorage from "@/utils/configStorage";
+import { GRADE_PRESETS } from "@/utils/presets";
 import { fileNameGeneratedRuleEnum } from '@/utils/enum';
 import { useAppStore } from '@/stores/app';
 import { createFormulasGenerator } from '@/utils/paperGenerator';
+import { cloneDeep } from 'lodash';
 
 const { proxy } = getCurrentInstance()
 
@@ -90,67 +98,100 @@ watch(() => formData.value.lineHeight, (newVal) => {
   }
 })
 
+/** 把一份配置（或预设）的字段套用到 formData，预设与已保存配置共用这一入口 */
+const applyConfig = (config) => {
+  formData.value.step = config.step
+  formData.value.numberOfFormulas = config.numberOfFormulas
+  formData.value.whereIsResult = config.whereIsResult
+  formData.value.enableBrackets = config.enableBrackets
+  formData.value.carry = config.carry
+  formData.value.abdication = config.abdication
+  formData.value.remainder = config.remainder
+  formData.value.formulaList = cloneDeep(config.formulaList)
+  formData.value.resultMinValue = config.resultMinValue
+  formData.value.resultMaxValue = config.resultMaxValue
+
+  // 以下字段预设里不带，仅加载已保存配置时套用
+  if (config.solution !== undefined) formData.value.solution = config.solution
+  if (config.numberOfPapers !== undefined) formData.value.numberOfPapers = config.numberOfPapers
+  if (config.numberOfPagerColumns !== undefined) formData.value.numberOfPagerColumns = config.numberOfPagerColumns
+  if (config.paperTitle !== undefined) formData.value.paperTitle = config.paperTitle
+  if (config.paperSubTitle !== undefined) formData.value.paperSubTitle = config.paperSubTitle
+  if (config.lineHeight !== undefined) formData.value.lineHeight = parseInt(config.lineHeight) || 10
+  if (config.fileNameGeneratedRule !== undefined) formData.value.fileNameGeneratedRule = config.fileNameGeneratedRule
+}
+
 onMounted(async () => {
   document.title = '小学数学口算题 | Primary School Mathematics'
 
   refreshConfiguration()
   const { data: config } = configurations.value[0] // todo
-
-  formData.value.step = config.step
-  formData.value.numberOfFormulas = config.numberOfFormulas
-  formData.value.whereIsResult = config.whereIsResult
-  formData.value.enableBrackets = config.enableBrackets
-  formData.value.carry = config.carry
-  formData.value.abdication = config.abdication
-  formData.value.remainder = config.remainder
-  formData.value.solution = config.solution
-  formData.value.numberOfPapers = config.numberOfPapers
-  formData.value.numberOfPagerColumns = config.numberOfPagerColumns
-  formData.value.paperTitle = config.paperTitle
-  formData.value.paperSubTitle = config.paperSubTitle
-  formData.value.lineHeight = parseInt(config.lineHeight) || 10
-  formData.value.formulaList = config.formulaList
-  formData.value.resultMinValue = config.resultMinValue
-  formData.value.resultMaxValue = config.resultMaxValue
-  formData.value.fileNameGeneratedRule = config.fileNameGeneratedRule
+  applyConfig(config)
 })
 
 const paperList = ref([])
-const paperDescriptionList = computed(() => {
-  return paperList.value.map(p => {
-    return p.customFormulaList && p.customFormulaList.length ? `自定义口算题${p.numberOfFormulas}道` : `${p.step}步计算题口算题${p.numberOfFormulas}道`
-  })
-})
 
 const activeConfigurationId = ref('1')
 const refreshConfiguration = () => {
   configurations.value = new ConfigStorage().loadAll()
 }
-const addConfiguration = (newId) => {
-  activeConfigurationId.value = newId
-  refreshConfiguration()
-}
-const selectedConfiguration = (configuration) => {
-  console.log(configuration);
 
+const selectedConfiguration = (configuration) => {
+  // SummaryPanel 的 watch 在 activeId 指向不存在的方案时会跳过 emit，
+  // 这里再兜一层，防止历史调用路径传入 undefined 导致解构崩溃
+  if (!configuration?.data) return
   const { data: config } = configuration
-  formData.value.step = config.step
-  formData.value.numberOfFormulas = config.numberOfFormulas
-  formData.value.whereIsResult = config.whereIsResult
-  formData.value.enableBrackets = config.enableBrackets
-  formData.value.carry = config.carry
-  formData.value.abdication = config.abdication
-  formData.value.remainder = config.remainder
-  formData.value.solution = config.solution
-  formData.value.numberOfPapers = config.numberOfPapers
-  formData.value.numberOfPagerColumns = config.numberOfPagerColumns
-  formData.value.paperTitle = config.paperTitle
-  formData.value.paperSubTitle = config.paperSubTitle
-  formData.value.lineHeight = parseInt(config.lineHeight) || 10
-  formData.value.formulaList = config.formulaList
-  formData.value.resultMinValue = config.resultMinValue
-  formData.value.resultMaxValue = config.resultMaxValue
-  formData.value.fileNameGeneratedRule = config.fileNameGeneratedRule
+  applyConfig(config)
+}
+
+/** 年级快捷预设：套用参数并给出反馈 */
+const applyPreset = (preset) => {
+  applyConfig(preset.data)
+  proxy.$message.success(`已套用「${preset.grade} · ${preset.desc}」，可再微调后点右侧「生成试卷」`)
+}
+
+/** 当前参数与哪个预设完全一致（用于卡片高亮）。
+ *  比较预设会设置的全部题型参数（不含题量这类可自由微调的字段），
+ *  在「更多设置」里改过进位/退位等参数后，卡片高亮应随之消失 */
+const activePresetId = computed(() => {
+  const fd = formData.value
+  const hit = GRADE_PRESETS.find(p => {
+    const d = p.data
+    return d.step == fd.step
+      && d.whereIsResult == fd.whereIsResult
+      && d.enableBrackets == fd.enableBrackets
+      && d.carry == fd.carry
+      && d.abdication == fd.abdication
+      && d.remainder == fd.remainder
+      && d.resultMinValue == fd.resultMinValue
+      && d.resultMaxValue == fd.resultMaxValue
+      && JSON.stringify(d.formulaList) == JSON.stringify(fd.formulaList)
+  })
+  return hit ? hit.id : ''
+})
+
+/** 保存当前参数为方案（原 AutoGenerateFormulas 内的逻辑，上移到首页供右栏调用） */
+const saveConfig = () => {
+  refForm.value?.validate((valid) => {
+    if (!valid) return
+
+    proxy.$messageBox.prompt('请给配置起个名字', '提示', {
+      inputPattern: /^\S{1,10}$/,
+      inputPlaceholder: '不能多于10个字符',
+      inputErrorMessage: '配置名字不能为空且不能多于10个字符'
+    }).then(({ value }) => {
+      if (configurations.value?.length >= 10) {
+        proxy.$message.error('最多只能保存10份配置！')
+        return
+      }
+
+      const newId = uuidv4()
+      new ConfigStorage().save(newId, value, toRaw(unref(formData)))
+      proxy.$message.success('保存成功!')
+      activeConfigurationId.value = newId
+      refreshConfiguration()
+    }).catch(() => { })
+  })
 }
 
 const buttonLoading = ref(false)
@@ -174,4 +215,56 @@ const generate = () => {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+/* 首页画布底色（tokens.css 只放令牌，不放页面样式） */
+.page-container {
+  background: var(--psm-gray-50);
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.psm-card {
+  background: #fff;
+  border: 1px solid var(--psm-gray-200);
+  border-radius: var(--psm-radius-md);
+  box-shadow: var(--psm-shadow-sm);
+  padding: 20px 24px 4px;
+  margin-bottom: 16px;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.step-no {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--psm-brand-100);
+  color: var(--psm-brand-600);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--psm-gray-900);
+}
+</style>

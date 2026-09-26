@@ -1,76 +1,92 @@
 <template>
   <div>
-    <ElFormItem label="几步运算?">
-      <el-radio-group v-model="formData.step" @change="changeStep">
-        <el-radio-button v-for="o in stepOptions" :value="o.key" :disabled="o.disabled">{{ o.label }}</el-radio-button>
-      </el-radio-group>
-      <ElButton type="primary" style="margin-left: 6px;" @click="openOptionsDrawer">其他设置</ElButton>
+    <ElFormItem label="几个数相算？">
+      <div class="step-row">
+        <el-radio-group v-model="formData.step" @change="changeStep">
+          <el-radio-button v-for="o in stepOptions" :value="o.key" :disabled="o.disabled">{{ o.label }}</el-radio-button>
+        </el-radio-group>
+        <ElButton class="more-options" type="primary" plain @click="openOptionsDrawer">
+          <el-icon class="mr-1"><Setting /></el-icon>更多设置
+        </ElButton>
+      </div>
+      <p class="field-hint">行高、卷子标题、进位退位等参数在「更多设置」里调整</p>
     </ElFormItem>
 
     <template v-for="(item, index) in formData.formulaList" :key="index">
-      <ElFormItem v-if="item.operators" :label="`第${index}步运算符号选择`" :prop="`formulaList.${index}.operators`"
-        :rules="requiredRule">
-        <el-checkbox-group v-model="item.operators">
-          <el-checkbox v-for="o in operatorOptions" :value="o.key">{{ o.label }}</el-checkbox>
-        </el-checkbox-group>
+      <ElFormItem v-if="item.operators" :label="`第 ${index} 步用哪些运算符号？（可多选）`"
+        :prop="`formulaList.${index}.operators`" :rules="requiredRule">
+        <div class="op-btns" role="group" :aria-label="`第 ${index} 步运算符号`">
+          <button v-for="o in operatorOptions" :key="o.key" type="button" class="op-btn"
+            :class="{ on: item.operators.includes(o.key) }" :title="o.name" :aria-pressed="item.operators.includes(o.key)"
+            @click="toggleOperator(item, index, o.key)">
+            {{ o.symbol }}
+          </button>
+        </div>
       </ElFormItem>
 
-      <ElFormItem :label="`算数项${index + 1}`">
-        <ElRow :gutter="8">
-          <ElCol :span="8">
-            <ElFormItem :prop="`formulaList.${index}.min`" :rules="requiredNumberRule">
-              <ElInput v-model.number="item.min">
-                <template #prepend>最小值</template>
-              </ElInput>
-            </ElFormItem>
-          </ElCol>
-          <ElCol :span="8">
-            <ElFormItem :prop="`formulaList.${index}.max`" :rules="requiredNumberRule">
-              <ElInput v-model.number="item.max">
-                <template #prepend>最大值</template>
-              </ElInput>
-            </ElFormItem>
-          </ElCol>
-        </ElRow>
+      <ElFormItem :label="`第 ${index + 1} 个数的范围`">
+        <div class="range-row">
+          <ElFormItem :prop="`formulaList.${index}.min`" :rules="requiredNumberRule" class="range-input">
+            <ElInput v-model.number="item.min">
+              <template #prepend>最小</template>
+            </ElInput>
+          </ElFormItem>
+          <span class="range-tilde">~</span>
+          <ElFormItem :prop="`formulaList.${index}.max`" :rules="requiredNumberRule" class="range-input">
+            <ElInput v-model.number="item.max">
+              <template #prepend>最大</template>
+            </ElInput>
+          </ElFormItem>
+          <!-- 滑条上限必须容纳当前值：el-slider 对超限 modelValue 会立刻 emit 钳制值，
+               写死 100/1000 会在失焦瞬间把手输的大值（如三位数、万以内）静默改写掉 -->
+          <el-slider class="range-slider" :model-value="[item.min, item.max]"
+            :min="Math.min(0, Number(item.min) || 0)" :max="Math.max(100, Number(item.max) || 0)" range
+            @update:model-value="([a, b]) => { item.min = a; item.max = b }" />
+        </div>
       </ElFormItem>
     </template>
 
-    <ElFormItem label="运算结果">
-      <ElRow :gutter="8">
-        <ElCol :span="8">
-          <ElFormItem prop="resultMinValue"
-            :rules="[{ required: true, message: '请填写运算结果最小值' }, { type: 'number', message: '请填写数字' }]">
-            <ElInput v-model.number="formData.resultMinValue">
-              <template #prepend>最小值</template>
-            </ElInput>
-          </ElFormItem>
-        </ElCol>
-        <ElCol :span="8">
-          <ElFormItem prop="resultMaxValue"
-            :rules="[{ required: true, message: '请填写运算结果最大值' }, { type: 'number', message: '请填写数字' }]">
-            <ElInput v-model.number="formData.resultMaxValue">
-              <template #prepend>最大值</template>
-            </ElInput>
-          </ElFormItem>
-        </ElCol>
-      </ElRow>
+    <ElFormItem label="得数的范围">
+      <div class="range-row">
+        <ElFormItem prop="resultMinValue"
+          :rules="[{ required: true, message: '请填写得数最小值' }, { type: 'number', message: '请填写数字' }]"
+          class="range-input">
+          <ElInput v-model.number="formData.resultMinValue">
+            <template #prepend>最小</template>
+          </ElInput>
+        </ElFormItem>
+        <span class="range-tilde">~</span>
+        <ElFormItem prop="resultMaxValue"
+          :rules="[{ required: true, message: '请填写得数最大值' }, { type: 'number', message: '请填写数字' }]"
+          class="range-input">
+          <ElInput v-model.number="formData.resultMaxValue">
+            <template #prepend>最大</template>
+          </ElInput>
+        </ElFormItem>
+        <el-slider class="range-slider" :model-value="[formData.resultMinValue, formData.resultMaxValue]"
+          :min="Math.min(0, Number(formData.resultMinValue) || 0)"
+          :max="Math.max(1000, Number(formData.resultMaxValue) || 0)" range
+          @update:model-value="([a, b]) => { formData.resultMinValue = a; formData.resultMaxValue = b }" />
+      </div>
     </ElFormItem>
 
     <ElFormItem prop="numberOfFormulas"
-      :rules="[{ required: true, message: '请填写口算题数量' }, { type: 'number', message: '请填写数字' }]">
-      <ElRow :gutter="20">
-        <ElCol :span="14">
+      :rules="[{ required: true, message: '请填写每份卷子的题数' }, { type: 'number', message: '请填写数字' }]">
+      <div class="range-row">
+        <ElFormItem class="range-input count-input">
           <ElInput v-model.number="formData.numberOfFormulas">
-            <template #prepend>口算题数量</template>
+            <template #prepend>每份题数</template>
           </ElInput>
-        </ElCol>
-      </ElRow>
+        </ElFormItem>
+      </div>
     </ElFormItem>
 
     <ElFormItem>
-      <ElButton type="primary" @click="append">添加口算题</ElButton>
-      <ElButton @click="clear">清空口算题</ElButton>
-      <el-button type="success" @click="addConfiguration">将当前参数保存为配置</el-button>
+      <ElButton type="primary" @click="append">
+        <el-icon class="mr-1"><CirclePlus /></el-icon>添加为一组题
+      </ElButton>
+      <ElButton @click="clear">清空题组</ElButton>
+      <p class="field-hint flow-hint">可以添加多组不同的题型（比如一组加法、一组乘法），最后在右侧一起生成卷子</p>
     </ElFormItem>
 
     <OptionsDrawer v-model:visible="optionsDrawerVisible" v-model:formulasFormData="formData" />
@@ -78,13 +94,9 @@
 </template>
 
 <script setup>
-import { computed, ref, unref, toRaw, getCurrentInstance } from 'vue';
-import { v4 as uuidv4 } from "uuid";
+import { computed, ref, unref, toRaw } from 'vue';
 import { cloneDeep } from "lodash";
-import ConfigStorage from '@/utils/configStorage';
 import { OptionsDrawer } from "@/components/home";
-
-const { proxy } = getCurrentInstance()
 
 const props = defineProps({
   formulasFormData: {
@@ -95,11 +107,10 @@ const props = defineProps({
   },
   refForm: {
     type: Object
-  },
-  configurations: Array
+  }
 })
 
-const emit = defineEmits(['update:formulasFormData', 'update:papers', 'add-configuration'])
+const emit = defineEmits(['update:formulasFormData', 'update:papers'])
 
 const formData = computed({
   get() {
@@ -120,14 +131,26 @@ const paperList = computed({
 })
 
 const operatorOptions = [
-  { key: 1, label: '+(加法)' },
-  { key: 2, label: '-(减法)' },
-  { key: 3, label: '×(乘法)' },
-  { key: 4, label: '÷(除法)' }
+  { key: 1, symbol: '＋', name: '加法' },
+  { key: 2, symbol: '－', name: '减法' },
+  { key: 3, symbol: '×', name: '乘法' },
+  { key: 4, symbol: '÷', name: '除法' }
 ]
 
+const toggleOperator = (item, index, key) => {
+  const i = item.operators.indexOf(key)
+  if (i >= 0) {
+    item.operators.splice(i, 1)
+  } else {
+    item.operators.push(key)
+  }
+  // 自绘按钮不走 el-checkbox-group，不会自动触发 el.form.change，
+  // 手动校验对应字段，让「至少一种符号」的报错/消除即时可见
+  props.refForm?.validateField(`formulaList.${index}.operators`)?.catch?.(() => { })
+}
+
 const requiredRule = [
-  { required: true, message: '此项为必填项' }
+  { required: true, message: '请至少选择一种运算符号' }
 ]
 const requiredNumberRule = [
   { required: true, message: '此项为必填项' }, { type: 'number', message: '此项必须为数字' }
@@ -138,13 +161,13 @@ const stepOptions = computed(() => {
   // 多步运算时不能有余数
   const disabled = formData.value.remainder == '3'
   return [
-    { key: '1', label: "一步运算", disabled: false },
-    { key: '2', label: "两步运算", disabled },
-    { key: '3', label: "三步运算", disabled }
+    { key: '1', label: "2 个数", disabled: false },
+    { key: '2', label: "3 个数", disabled },
+    { key: '3', label: "4 个数", disabled }
   ]
 })
 const changeStep = (val) => {
-  // 选择了新的几步运算后, 计算新值与旧值的差
+  // 选择了新的几个数相算后, 计算新值与旧值的差
   const difference = parseInt(val) - formData.value.formulaList.length + 1
 
   // 如果差是正数说明需要增加新的算数项,如果差是负数说明需要减去旧的算数项
@@ -176,28 +199,90 @@ const append = () => {
 const clear = () => {
   paperList.value = []
 }
-
-const addConfiguration = () => {
-  props.refForm?.validate((valid) => {
-    if (!valid) return
-
-    proxy.$messageBox.prompt('请给配置起个名字', '提示', {
-      inputPattern: /^\S{1,10}$/,
-      inputPlaceholder: '不能多于10个字符',
-      inputErrorMessage: '配置名字不能为空且不能多于10个字符'
-    }).then(({ value }) => {
-      if (props.configurations?.length >= 10) {
-        proxy.$message.error('最多只能保存10份配置！')
-        return
-      }
-
-      const newId = uuidv4()
-      new ConfigStorage().save(newId, value, toRaw(unref(formData)))
-      proxy.$message.success('保存成功!')
-      emit('add-configuration', newId)
-    })
-  })
-}
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field-hint {
+  width: 100%;
+  font-size: 12px;
+  color: var(--psm-gray-400);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.flow-hint {
+  margin-left: 4px;
+}
+
+.op-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.op-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--psm-radius-md);
+  border: 1.5px solid var(--psm-gray-200);
+  background: #fff;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--psm-gray-500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--psm-brand-400);
+    color: var(--psm-brand-600);
+  }
+
+  &.on {
+    border-color: var(--psm-brand-500);
+    background: var(--psm-brand-50);
+    color: var(--psm-brand-600);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+  }
+}
+
+.range-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.range-input {
+  flex: 0 0 170px;
+  width: 170px;
+  margin-bottom: 0;
+}
+
+.count-input {
+  flex-basis: 200px;
+  width: 200px;
+}
+
+.range-tilde {
+  line-height: 32px;
+  color: var(--psm-gray-400);
+}
+
+.range-slider {
+  flex: 1;
+  min-width: 140px;
+  margin-top: 4px;
+  margin-left: 8px;
+}
+
+.mr-1 {
+  margin-right: 4px;
+}
+</style>

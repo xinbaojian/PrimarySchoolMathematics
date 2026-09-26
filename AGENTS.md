@@ -27,7 +27,7 @@ pnpm build:suiyan     # base=/demo/psm/，用于自有部署
 
 ## 架构
 
-入口链路：`index.html` → `src/main.js`（注册 Pinia、带 `zh-cn` locale 的 Element Plus、全部 `@element-plus/icons-vue` 图标，并按顺序引入 `src/styles/` 下的三个全局样式文件）→ `src/App.vue`（`<router-view>` + `<keep-alive>`）→ `src/router/index.js`。
+入口链路：`index.html` → `src/main.js`（注册 Pinia、带 `zh-cn` locale 的 Element Plus、全部 `@element-plus/icons-vue` 图标，并按顺序引入 `src/styles/` 下的四个全局样式文件：tailwind.css、shared.scss、print.css、tokens.css——tokens.css 定义 `--psm-*` 设计令牌并覆盖 Element Plus 主题色，**必须在 element-plus 的样式之后引入**）→ `src/App.vue`（`<router-view>` + `<keep-alive>`）→ `src/router/index.js`。
 
 只有两个路由：
 - `/` → `views/Layout.vue`，包裹 `Header` + `Home` + `Footer`。`Home.vue` 才是真正的生成器界面。
@@ -35,7 +35,7 @@ pnpm build:suiyan     # base=/demo/psm/，用于自有部署
 
 ### 领域主流程（最需要理解的部分）
 
-1. **`views/Home.vue`** 维护一个大的 `formData` ref（步数、取值范围、运算符、标题、列数、行高等），外加一个 `paperList` 数组表示「题型组」。编辑「自动生成」题型走 `components/home/AutoGenerateFormulas.vue`；「手动添加」走 `CustomFormulas.vue`。点击「生成口算题卷子」时调用 `createFormulasGenerator(formData, paperList)`。
+1. **`views/Home.vue`** 维护一个大的 `formData` ref（步数、取值范围、运算符、标题、列数、行高等），外加一个 `paperList` 数组表示「题型组」。页面为双栏 grid：左栏是分步卡片表单（顶部 `QuickPresets.vue` 年级快捷预设 + `AutoGenerateFormulas.vue`「自动生成」/ `CustomFormulas.vue`「手动添加」），右栏是 `SummaryPanel.vue`（试卷摘要、预计页数、生成按钮、「我的方案」配置列表）。预设数据在 `utils/presets.js`，套用配置/预设统一走 `applyConfig`。点击生成时调用 `createFormulasGenerator(formData, paperList)`。
 2. **`utils/paperGenerator.js`** 把每个题型组映射为 `utils/psm.js` 的参数，生成 `numberOfPapers` 份试卷并打乱题目顺序。`psm.js` 中的 `FormulasGenerator` 类是算术引擎：它拼装算式字符串（使用 `×`/`÷`、括号、以及「求算数项」时的 `__` 空位），并通过 `validator*` 系列函数按范围 / 进位 / 退位 / 余数 / 括号规则校验；不通过就重新摇号。`is_result` 决定「求结果」（`=`）还是「求算数项」（挖掉一个运算项）。
 3. **`stores/app.js`**（`useAppStore`）是交接点：`navigateToPrint(router, fileName, papers)` 把 `printPreviewPapers` 存进 store 再跳转 `/print`。这就是生成必须完成后才能跳转的原因。
 4. **`views/Print.vue`** 消费 `appStore.printPreviewPapers`，用 `utils/paperLayout.js` 完成分页排版。
@@ -44,11 +44,11 @@ pnpm build:suiyan     # base=/demo/psm/，用于自有部署
 
 ### 配置持久化
 
-`utils/configStorage.js` 是一个类，把最多 10 份命名参数组存到 `localStorage` 的 `customer-config` 键下。首次加载会写入一份 `默认` 配置（id 为 `'1'`）。`Home.vue` 与 `ConfigurationList.vue` 负责读写；默认值定义在 `loadAll()` 中，必须与 `Home.vue` 里的兜底字面量保持一致。
+`utils/configStorage.js` 是一个类，把最多 10 份命名参数组存到 `localStorage` 的 `customer-config` 键下。首次加载会写入一份 `默认` 配置（id 为 `'1'`）。`Home.vue` 与右栏 `SummaryPanel.vue`（「我的方案」列表）负责读写；默认值定义在 `loadAll()` 中，必须与 `Home.vue` 里的兜底字面量保持一致。
 
 ### 样式
 
-Tailwind（purge 配置见 `tailwind.config.js`）+ SCSS + Element Plus。`components/index.js` 与 `components/home/index.js` 是 barrel 文件，形式为 `export { default as X } from './X.vue'`。**barrel 导出会把组件的样式无条件打进产物，即使该组件从未被渲染**，其中也包括非 scoped 的全局样式块。新增 / 删除组件后，到 `dist/assets/*.css` 里 grep 确认没有意外注入的全局规则。
+Tailwind（content 配置见 `tailwind.config.js`）+ SCSS + Element Plus。`components/index.js` 与 `components/home/index.js` 是 barrel 文件，形式为 `export { default as X } from './X.vue'`。vite 8（rolldown）会把未被引用的 barrel 导出连同其样式一起 tree-shake 掉（已实测），但组件一旦被间接引用，其样式（含非 scoped 的全局样式块）就会进入产物。新增 / 删除组件后，仍应到 `dist/assets/*.css` 里 grep 确认没有意外注入的全局规则。`src/styles/tokens.css` 只放设计令牌与 Element Plus 主题变量，不要往里加页面布局样式。
 
 ## 打印排版 —— 风险最高的区域
 

@@ -1,0 +1,64 @@
+/**
+ * 设计令牌（Design Tokens）—— 首页 UI 重设计 Phase 1
+ *
+ * 暖阳橙品牌色 + 知识蓝辅助色，4px 间距网格，1.25 字号阶梯。
+ * 本文件同时覆盖 Element Plus 的主题色变量，因此必须在
+ * element-plus/dist/index.css 之后引入（见 main.js）。
+ *
+ * 注意：这里只放「令牌与主题色」，不放任何页面布局样式，
+ * 避免全局样式污染（尤其是打印页 /print 的高风险区域）。
+ */
+
+:root {
+  /* ---- 品牌色 · 暖阳橙 ---- */
+  --psm-brand-50: #fff7ed;
+  --psm-brand-100: #ffedd5;
+  --psm-brand-200: #fed7aa;
+  --psm-brand-400: #fb923c;
+  --psm-brand-500: #f97316;
+  --psm-brand-600: #ea580c;
+  --psm-brand-700: #c2410c;
+
+  /* ---- 辅助色 · 知识蓝 ---- */
+  --psm-info-50: #eff6ff;
+  --psm-info-100: #dbeafe;
+  --psm-info-500: #3b82f6;
+  --psm-info-600: #2563eb;
+
+  /* ---- 中性灰阶 ---- */
+  --psm-gray-50: #f9fafb;
+  --psm-gray-100: #f3f4f6;
+  --psm-gray-200: #e5e7eb;
+  --psm-gray-300: #d1d5db;
+  --psm-gray-400: #9ca3af;
+  --psm-gray-500: #6b7280;
+  --psm-gray-700: #374151;
+  --psm-gray-900: #111827;
+
+  /* ---- 圆角 ---- */
+  --psm-radius-sm: 6px;
+  --psm-radius-md: 10px;
+  --psm-radius-lg: 16px;
+
+  /* ---- 阴影 ---- */
+  --psm-shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.05);
+  --psm-shadow-md: 0 4px 12px rgba(17, 24, 39, 0.08);
+  --psm-shadow-lg: 0 12px 32px rgba(17, 24, 39, 0.12);
+
+  /* ---- Element Plus 主题色覆盖：暖阳橙 ---- */
+  --el-color-primary: #f97316;
+  --el-color-primary-light-3: #fb923c;
+  --el-color-primary-light-5: #fdba74;
+  --el-color-primary-light-7: #fed7aa;
+  --el-color-primary-light-8: #ffedd5;
+  --el-color-primary-light-9: #fff7ed;
+  --el-color-primary-dark-2: #ea580c;
+
+  --el-color-success: #16a34a;
+  --el-color-warning: #d97706;
+  --el-color-error: #dc2626;
+  --el-color-danger: #dc2626;
+
+  --el-border-radius-base: 6px;
+  --el-font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
