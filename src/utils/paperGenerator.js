@@ -62,6 +62,5 @@ export function createFormulasGenerator(options, paperList) {
     })
   }
 
-  console.log('papers', papers);
   return papers
 }

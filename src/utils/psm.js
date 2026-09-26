@@ -60,6 +60,62 @@ const f4 = (s) => {
 
 
 /**
+ * 安全算术求值器（递归下降），取代直接 eval。
+ *
+ * 只接受 + - * / ( )、整数/小数与一元正负号，运算语义与 eval 完全一致
+ * （左结合、先乘除后加减、浮点除法、除零得 Infinity），
+ * 但不会执行任何 JavaScript 代码：
+ *  - 消除构建期的 direct eval 告警与压缩/作用域优化限制；
+ *  - 消除潜在的代码注入面（算式字符串一旦混入非算术字符即抛错，
+ *    由调用方 isResultOk 的 try/catch 兜底）。
+ * @param {string} expr 算式字符串
+ * @return {number}
+ */
+function calcExpr(expr) {
+    const s = String(expr);
+    let i = 0;
+
+    const parseExpr = () => { // 加减（低优先级，左结合）
+        let v = parseTerm();
+        for (; ;) {
+            if (s[i] === '+') { i += 1; v += parseTerm(); }
+            else if (s[i] === '-') { i += 1; v -= parseTerm(); }
+            else return v;
+        }
+    };
+
+    const parseTerm = () => { // 乘除（高优先级，左结合）
+        let v = parseUnary();
+        for (; ;) {
+            if (s[i] === '*') { i += 1; v *= parseUnary(); }
+            else if (s[i] === '/') { i += 1; v /= parseUnary(); }
+            else return v;
+        }
+    };
+
+    const parseUnary = () => { // 一元正负、括号、数字字面量
+        if (s[i] === '+') { i += 1; return parseUnary(); }
+        if (s[i] === '-') { i += 1; return -parseUnary(); }
+        if (s[i] === '(') {
+            i += 1;
+            const v = parseExpr();
+            if (s[i] !== ')') throw new Error(`括号不匹配: ${s}`);
+            i += 1;
+            return v;
+        }
+        const m = /^\d+(\.\d+)?/.exec(s.slice(i));
+        if (!m) throw new Error(`非法算式: ${s}`);
+        i += m[0].length;
+        return parseFloat(m[0]);
+    };
+
+    const value = parseExpr();
+    if (i !== s.length) throw new Error(`无法完整解析: ${s}`);
+    return value;
+}
+
+
+/**
  * 算式分解校验器
  * Author: J.sky
  * Mail: bosichong@qq.com
@@ -129,7 +185,7 @@ function validator2(s, result, carry, abdication, remainder) {
     while (f2(s)) {
         const f = f2(s);
         if (isMultDivOk(f, result, remainder)) {
-            const r = eval(f);
+            const r = calcExpr(f);
             s = s.replace(f, `${parseInt(parseFloat(r))}`);
         } else {
             return false;
@@ -139,7 +195,7 @@ function validator2(s, result, carry, abdication, remainder) {
     while (f3(s)) {
         const f = f3(s);
         if (isAddSub(f, result, carry, abdication)) {
-            const r = eval(f);
+            const r = calcExpr(f);
             s = s.replace(f, `${r}`);
         } else {
             return false;
@@ -160,7 +216,8 @@ function validator2(s, result, carry, abdication, remainder) {
  */
 const isResultOk = (str, result) => {
     try {
-        return result[0] <= eval(str) && eval(str) <= result[1];
+        const v = calcExpr(str);
+        return result[0] <= v && v <= result[1];
     } catch (e) {
         return false;
     }
@@ -185,7 +242,7 @@ const isMultDivOk = (s, result, remainder) => {
                 if (
                     isResultOk(s, result) &&
                     parseInt(divs[0]) % parseInt(divs[1]) === 0 &&
-                    eval(s) > 0
+                    calcExpr(s) > 0
                 ) {
                     return true;
                 } else {
@@ -196,14 +253,14 @@ const isMultDivOk = (s, result, remainder) => {
                 if (
                     isResultOk(s, result) &&
                     parseInt(divs[0]) % parseInt(divs[1]) > 0 &&
-                    eval(s) > 0
+                    calcExpr(s) > 0
                 ) {
                     return true;
                 } else {
                     return false;
                 }
             } else if (remainder === 1) {
-                if (isResultOk(s, result) && eval(s) > 0) {
+                if (isResultOk(s, result) && calcExpr(s) > 0) {
                     return true;
                 } else {
                     return false;
@@ -336,7 +393,7 @@ function getXStepstr(src, is_result) {
     if (is_result == 0) {
         return repSymStr(src) + "=";
     } else if (is_result == 1) {
-        return getRandomItem(repSymStr(src) + "=" + eval(src));
+        return getRandomItem(repSymStr(src) + "=" + calcExpr(src));
     } else {
         throw new Error("is_result求结果，求算数项参数设置错误！");
     }
